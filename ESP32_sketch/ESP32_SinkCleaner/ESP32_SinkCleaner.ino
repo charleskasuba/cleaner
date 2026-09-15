@@ -1,5 +1,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
+WiFiClientSecure httpsClient;
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -9,11 +11,11 @@
 // ============================================================
 
 // -------------------- WiFi --------------------
-const char *WIFI_SSID = "YOUR_WIFI_SSID";
-const char *WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char *WIFI_SSID = "HASSON ESP";
+const char *WIFI_PASSWORD = "SWAT2772";
 
 // Render app host (replace with your deployed URL, e.g. cleaner.onrender.com)
-const char *SERVER_HOST = "cleaner.onrender.com";
+const char *SERVER_HOST = "cleaner-zjto.onrender.com";
 const int  SERVER_PORT  = 443;          // Render serves HTTPS (uses TLS)
 const char *SERVER_PATH = "/api/telemetry";
 const char *ACK_PATH    = "/api/ack";
@@ -114,6 +116,7 @@ void setup() {
   if (WiFi.status() == WL_CONNECTED) {
     Serial.print("\nWiFi connected! IP: ");
     Serial.println(WiFi.localIP());
+    httpsClient.setInsecure();   // skip cert validation for Render HTTPS
   } else {
     Serial.println("\nWiFi FAILED - will keep retrying in loop");
   }
@@ -540,7 +543,7 @@ void sendTelemetry() {
 
   String url = String("https://") + SERVER_HOST + SERVER_PATH;
 
-  http.begin(url);
+  http.begin(httpsClient, url);
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(8000);
 
@@ -607,7 +610,7 @@ void ackCommand(long revision) {
 
   String url = String("https://") + SERVER_HOST + ACK_PATH;
 
-  http.begin(url);
+  http.begin(httpsClient, url);
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(8000);
 
