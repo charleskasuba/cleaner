@@ -51,6 +51,22 @@
         </div>
       </div>
 
+      <!-- ===================== PUMP CYCLES / DAY ===================== -->
+      <div class="card">
+        <h2>Pump Cycles / Day</h2>
+        <p class="help">How many times the pump drained the sink, counted per day.
+          Updates whenever the device posts telemetry.</p>
+
+        <div class="bar-chart" id="cycles-chart">
+          <div class="chart-empty">WAITING FOR DATA</div>
+        </div>
+
+        <div class="chart-footer">
+          <span class="chart-stat">Today: <b id="cycles-today">0</b></span>
+          <span class="chart-stat">Last 14 days: <b id="cycles-total">0</b></span>
+        </div>
+      </div>
+
       <!-- ===================== REMOTE MOTOR CONTROL ===================== -->
       <div class="card">
         <h2>Remote Motor Control</h2>

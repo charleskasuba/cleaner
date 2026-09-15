@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // ESP32 Sink Cleaner - Remote Dashboard JS
 // ============================================================
 
@@ -21,6 +21,11 @@ const els = {
   modeManual: document.getElementById("mode-manual"),
   modeHint: document.getElementById("mode-hint"),
   ackState: document.getElementById("ack-state"),
+
+  // daily pump-cycle chart
+  cyclesChart: document.getElementById("cycles-chart"),
+  cyclesToday: document.getElementById("cycles-today"),
+  cyclesTotal: document.getElementById("cycles-total"),
 };
 
 
@@ -168,6 +173,50 @@ function showToast(msg, type) {
   t.className = "show " + type;
   clearTimeout(t._timer);
   t._timer = setTimeout(() => (t.className = ""), 2500);
+}
+
+// ============================================================
+// Pump cycles / day bar chart
+// ============================================================
+
+async function renderCycles() {
+  try {
+    const res = await fetch("/api/cycles");
+    const data = await res.json();
+    const days = data.days || [];
+    const counts = data.counts || [];
+    const el = els.cyclesChart;
+    if (!el) return;
+    el.innerHTML = "";
+
+    const max = Math.max(1, ...counts);
+    days.forEach((day, i) => {
+      const c = counts[i] || 0;
+      const col = document.createElement("div");
+      col.className = "cycle-col";
+      col.title = day + ": " + c + " cycle(s)";
+
+      const bar = document.createElement("div");
+      bar.className = "cycle-bar";
+      bar.style.height = Math.round((c / max) * 100) + "%";
+      bar.style.opacity = day === data.today
+        ? 1 : 0.25 + (c / max) * 0.6;
+
+      // label a few bars instead of all (keeps it readable on small screens)
+      const label = document.createElement("span");
+      label.className = "cycle-label";
+      label.textContent = (i % 2 === 0) ? day.slice(5) : "";
+
+      col.appendChild(bar);
+      col.appendChild(label);
+      el.appendChild(col);
+    });
+
+    els.cyclesToday.textContent = data.today ?? 0;
+    els.cyclesTotal.textContent = data.total ?? 0;
+  } catch (err) {
+    // chart is best-effort; ignore polling errors
+  }
 }
 
 refresh();

@@ -20,6 +20,9 @@ state = {
     "override_pump_on": False,    # what the override state should be
     "revision": 0,                # bumped each time control changes
     "acked_revision": 0,          # last revision acknowledged by ESP32
+
+    # daily pump-cycle history: "YYYY-MM-DD" -> number of drain cycles
+    "cycles_by_day": {},
 }
 
 LOCK = threading.Lock()
@@ -80,11 +83,43 @@ def api_telemetry():
         if "distance_cm" in data and data["distance_cm"] is not None:
             state["distance_cm"] = round(float(data["distance_cm"]), 1)
         if "pump_is_on" in data:
-            state["pump_is_on"] = bool(data["pump_is_on"])
+            new_pump = bool(data["pump_is_on"])
+            # Count a pump cycle on the OFF -> ON transition (one drain event).
+            if new_pump and not state["pump_is_on"]:
+                today = time.strftime("%Y-%m-%d")
+                state["cycles_by_day"][today] = state["cycles_by_day"].get(today, 0) + 1
+                state["today"] = state["cycles_by_day"][today]
+                state["total"] = state["total"] + 1
+            state["pump_is_on"] = new_pump
         if "gsm_registered" in data:
             state["gsm_registered"] = bool(data["gsm_registered"])
         state["last_update"] = time.time()
     return jsonify(control_block())
+
+
+@app.route("/api/cycles")
+def api_cycles():
+    """Daily pump-cycle counts for the bar graph (last N days)."""
+    days = request.args.get("days", default=14, type=int)
+    days = max(1, min(days, 60))
+    with LOCK:
+        by_day = dict(state["cycles_by_day"])
+    today = time.strftime("%Y-%m-%d")
+    labels, counts = [], []
+    for i in range(days - 1, -1, -1):
+        day = time.strftime(
+            "%Y-%m-%d", time.localtime(time.time() - i * 86400)
+        )
+        labels.append(day)
+        counts.append(by_day.get(day, 0))
+    return jsonify(
+        {
+            "days": labels,
+            "counts": counts,
+            "today": by_day.get(today, 0),
+            "total": sum(counts),
+        }
+    )
 
 
 @app.route("/api/ack", methods=["POST"])
@@ -102,3 +137,4 @@ app.config["JSON_SORT_KEYS"] = False
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+</content>
