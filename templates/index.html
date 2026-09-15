@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Sink Cleaner Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ESP32 Sink Cleaner <span class="sub">Remote Dashboard</span></h1>
+      <div id="conn-status" class="badge">WAITING FOR DEVICE</div>
+    </header>
+
+    <section class="grid">
+
+      <!-- ===================== LIVE PARAMETERS ===================== -->
+      <div class="card">
+        <h2>Live Parameters</h2>
+
+        <div class="param">
+          <span class="label">Sensor distance</span>
+          <span class="value"><b id="dist-val">--</b> <span class="unit">cm</span></span>
+        </div>
+        <div class="bar-wrap"><div id="dist-bar" class="bar" style="width:0%"></div></div>
+
+        <div class="param">
+          <span class="label">Water level</span>
+          <span id="level-state" class="pill pill-ok">NORMAL</span>
+        </div>
+
+        <div class="param">
+          <span class="label">Pump</span>
+          <span id="pump-badge" class="pill pill-off">OFF</span>
+        </div>
+
+        <div class="param">
+          <span class="label">GSM module</span>
+          <span id="gsm-badge" class="pill pill-off">OFF</span>
+        </div>
+
+        <div class="param">
+          <span class="label">SMS alert</span>
+          <span id="sms-state" class="pill pill-off">READY</span>
+        </div>
+
+        <div class="param">
+          <span class="label">Last update</span>
+          <span id="last-update" class="value muted">--</span>
+        </div>
+      </div>
+
+      <!-- ===================== REMOTE MOTOR CONTROL ===================== -->
+      <div class="card">
+        <h2>Remote Motor Control</h2>
+        <p class="help">Control the pump relay remotely. Switch to MANUAL to override the
+          ultrasonic auto-trigger logic.</p>
+
+        <div class="control-mode">
+          <span class="label">Control mode</span>
+          <div class="segmented">
+            <button id="mode-auto" class="seg-btn active">AUTO</button>
+            <button id="mode-manual" class="seg-btn">MANUAL</button>
+          </div>
+        </div>
+
+        <button id="pump-toggle" class="pump-btn pump-off">TURN PUMP ON</button>
+
+        <div class="hint" id="mode-hint">
+          AUTO: ultrasonic sensor triggers the pump when the water is high.
+        </div>
+
+        <div class="refresh-row">
+          <span class="muted">Command status</span>
+          <span id="ack-state" class="pill pill-off">PENDING</span>
+        </div>
+      </div>
+
+    </section>
+
+    <footer>
+      <p>Device: ESP32 + HC-SR04 + Relay + SIM800L + OLED &nbsp;|&nbsp; Backend: Flask</p>
+    </footer>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  color: #e6f1f5;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 24px;
+}
+
+.container {
+  width: 100%;
+  max-width: 960px;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+}
+
+.sub {
+  font-size: 0.9rem;
+  color: #7fb4c8;
+  font-weight: 400;
+}
+
+.badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  background: #3a3f4b;
+  color: #cbd5e0;
+}
+
+.badge.online { background: #1d4ed8; color: #fff; }
+.badge.offline { background: #7f1d1d; color: #fff; }
+.badge.onplat { background: #14532d; color: #86efac; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 720px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 22px;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.05rem;
+  color: #9fd3e8;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+
+.param {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.label {
+  color: #9db6c4;
+  font-size: 0.92rem;
+}
+
+.value b {
+  font-size: 1.3rem;
+}
+
+.unit {
+  color: #7fb4c8;
+  font-size: 0.8rem;
+}
+
+.muted { color: #7fb4c8; }
+
+.bar-wrap {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.bar {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #eab308, #ef4444);
+  border-radius: 6px;
+  transition: width 0.6s ease;
+}
+
+.pill {
+  padding: 3px 12px;
+  border-radius: 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.pill-on { background: #14532d; color: #86efac; }
+.pill-off { background: #450a0a; color: #fca5a5; }
+.pill-ok { background: #14532d; color: #86efac; }
+.pill-warn { background: #713f12; color: #fde047; }
+.pill-busy { background: #1e3a8a; color: #93c5fd; }
+
+.help {
+  color: #9db6c4;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.control-mode {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 16px 0;
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.seg-btn {
+  border: none;
+  background: transparent;
+  color: #9db6c4;
+  padding: 8px 18px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seg-btn.active {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+.pump-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+  color: #fff;
+}
+
+.pump-btn:active { transform: scale(0.98); }
+
+.pump-off {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+.pump-off:hover { filter: brightness(1.1); }
+
+.pump-on {
+  background: linear-gradient(135deg, #dc2626, #991b1b);
+}
+
+.pump-on:hover { filter: brightness(1.1); }
+
+.hint {
+  margin-top: 14px;
+  font-size: 0.85rem;
+  color: #7fb4c8;
+  line-height: 1.4;
+}
+
+.refresh-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+footer {
+  margin-top: 24px;
+  text-align: center;
+  color: #51707f;
+  font-size: 0.85rem;
+}
+
+#toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.3s, transform 0.3s;
+  z-index: 99;
+}
+
+#toast.show { opacity: 1; transform: translateY(0); }
+#toast.success { background: #14532d; }
+#toast.error { background: #7f1d1d; }
+#toast.info { background: #1e3a8a; }
