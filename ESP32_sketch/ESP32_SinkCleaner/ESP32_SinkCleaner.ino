@@ -239,13 +239,13 @@ void loop() {
   // Pump control
   // ----------------------------------------------------------
 
-  if (distance > 0 && distance < SENSOR_MAX_CM) {
-
-    Serial.print("Distance: ");
-    Serial.print(distance);
-    Serial.println(" cm");
+  // Remote manual must ALWAYS run, even if the sensor is out of
+  // range / reading 0 (e.g. water touching the sensor). Only the
+  // AUTO logic needs a valid distance.
+  if (remoteManualOverride || (distance > 0 && distance < SENSOR_MAX_CM)) {
 
     if (remoteManualOverride) {
+      Serial.println("REMOTE MANUAL: web override applies regardless of sensor");
 
       // ------------------------------------------------
       // REMOTE MANUAL MODE - web dashboard drives relay
