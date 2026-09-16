@@ -68,9 +68,9 @@ def api_set_control():
     data = request.get_json(silent=True) or {}
     with LOCK:
         if "manual_override" in data:
-            state["manual_override"] = bool(data["manual_override"])
+            state["manual_override"] = str(data["manual_override"]).strip().lower() == "true"
         if "override_pump_on" in data:
-            state["override_pump_on"] = bool(data["override_pump_on"])
+            state["override_pump_on"] = str(data["override_pump_on"]).strip().lower() == "true"
         state["revision"] += 1
     return jsonify(control_block())
 
