@@ -119,5 +119,40 @@ els.notifClear.addEventListener("click", () => {
   els.notifList.innerHTML = '<li class="notif-item muted">NO EVENTS YET</li>';
   notifCount = 0;
 });
+// Daily pump-cycle bar chart (reads /api/cycles)
+async function renderCycles() {
+  const holder = els.cyclesChart;
+  if (!holder) return;
+  holder.innerHTML = "LOADING&hellip;";
+  try {
+    const res = await fetch(`/api/cycles?days=14`);
+    const json = await res.json();
+    const days = json.days || [];
+    const counts = json.counts || [];
+    const max = counts.length ? Math.max(...counts) : 0;
+    if (!days.length) {
+      holder.innerHTML = `<div class="chart-empty">NO CYCLE DATA YET</div>`;
+    } else {
+      holder.innerHTML = days
+        .map((label, i) => {
+          const c = counts[i] || 0;
+          const h = max ? Math.round((c / max) * 100) : 0;
+          return `<div class="cycle-col" title="${label}: ${c} cycle${c === 1 ? "" : "s"}">
+            <div class="cycle-bar" style="height:${h}%"></div>
+            <span class="cycle-label">${label.slice(5)}</span>
+          </div>`;
+        })
+        .join("");
+    }
+    const t = document.getElementById("cycles-today");
+    const tot = document.getElementById("cycles-total");
+    if (t) t.textContent = json.today ?? 0;
+    if (tot) tot.textContent = json.total ?? 0;
+  } catch (err) {
+    holder.innerHTML = `<div class="chart-empty">CHART OFFLINE</div>`;
+  }
+}
 refresh();
+renderCycles();
 setInterval(refresh, 3000);
+setInterval(renderCycles, 6000);
