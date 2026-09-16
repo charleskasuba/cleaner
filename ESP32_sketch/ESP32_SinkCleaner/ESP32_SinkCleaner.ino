@@ -11,8 +11,8 @@ WiFiClientSecure httpsClient;
 // ============================================================
 
 // -------------------- WiFi --------------------
-const char *WIFI_SSID = "HASSON ESP";
-const char *WIFI_PASSWORD = "SWAT2772";
+const char *WIFI_SSID = "GalaxyA14";
+const char *WIFI_PASSWORD = "sambwa43";
 
 // Render app host (replace with your deployed URL, e.g. cleaner.onrender.com)
 const char *SERVER_HOST = "cleaner-zjto.onrender.com";
@@ -75,6 +75,7 @@ long duration;
 float distance;
 
 bool pumpIsOn = false;
+bool lastReportedPumpState = false;   // last pumpIsOn value we POSTed (edge-change detector)
 
 bool gsmRegistered = false;
 
@@ -339,6 +340,22 @@ void loop() {
   // ----------------------------------------------------------
   // Push telemetry to server (WiFi)
   // ----------------------------------------------------------
+
+  // ----------------------------------------------------------
+  // Push telemetry to server - IMMEDIATE POST ON PUMP CHANGE
+  // (the 5 s heartbeat below alone can MISS a fast manual
+  //  ON -> OFF toggle, so the server never sees the cycle)
+  // ----------------------------------------------------------
+
+  if (pumpIsOn != lastReportedPumpState) {
+    lastReportedPumpState = pumpIsOn;
+    if (WiFi.status() == WL_CONNECTED) {
+      sendTelemetry();
+      Serial.println(pumpIsOn ? "Pump CHANGED -> posted NOW (ON)" : "Pump CHANGED -> posted NOW (OFF)");
+    } else {
+      Serial.println("Pump changed while WiFi down - heartbeat will retry");
+    }
+  }
 
   static unsigned long lastTelemetryTime = 0;
 

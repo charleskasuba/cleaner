@@ -1,12 +1,7 @@
-﻿// ============================================================
 // ESP32 Sink Cleaner - Remote Dashboard JS
-// ============================================================
-
 const FULL_LIMIT_CM = 3.0;
-
-let currentMode = "auto";        // "auto" | "manual"
-let overridePumpOn = false;      // web-side pump state in manual mode
-
+let currentMode = "auto";
+let overridePumpOn = false     ;
 const els = {
   conn: document.getElementById("conn-status"),
   distVal: document.getElementById("dist-val"),
@@ -21,17 +16,61 @@ const els = {
   modeManual: document.getElementById("mode-manual"),
   modeHint: document.getElementById("mode-hint"),
   ackState: document.getElementById("ack-state"),
-
-  // daily pump-cycle chart
   cyclesChart: document.getElementById("cycles-chart"),
   cyclesToday: document.getElementById("cycles-today"),
   cyclesTotal: document.getElementById("cycles-total"),
+  notifList: document.getElementById("notif-list"),
+  notifClear: document.getElementById("notif-clear"),
 };
-
-
-// ------------------------------------------------------------
-// Poll /api/status and render the dashboard
-// ------------------------------------------------------------
+const pillOnClasses = "pill pill-on";
+const pillOffClasses = "pill pill-off";
+let lastPumpOn = null;
+let lastLevelFull = null;
+let lastOnline = null;
+let notifCount = 0;
+function addNotif(text, cls) {
+  const li = document.createElement("li");
+  li.className = "notif-item";
+  li.innerHTML = '<span class="notif-dot ' + cls + '"></span>' + text;
+  els.notifList.prepend(li);
+  notifCount++;
+  if (notifCount > 8) {
+    const last = els.notifList.lastElementChild;
+    if (last) last.remove();
+  }
+}
+function render(data) {
+  const dist = Number(data.distance_cm);
+  const fresh = data.last_update && (Date.now() / 1000 - data.last_update) < 30;
+  const online = !!fresh;
+  if (lastOnline !== online) {
+    lastOnline = online;
+    if (online) addNotif("DEVICE ONLINE", "success");
+    else addNotif("DEVICE OFFLINE", "error");
+  }
+  els.conn.textContent = online ? "DEVICE ONLINE" : "DEVICE OFFLINE";
+  els.conn.className = online ? "badge online" : "badge offline";
+  if (isFinite(dist)) {
+    els.distVal.textContent = dist.toFixed(1) + " cm";
+    els.distBar.style.width = Math.min(100, dist / 5 * 100) + "%";
+    const full = dist <= FULL_LIMIT_CM;
+    if (lastLevelFull !== full) {
+      lastLevelFull = full;
+      if (full) addNotif("WATER FULL - pump draining", "warn");
+      else addNotif("Water restored to NORMAL", "info");
+    }
+    els.levelState.textContent = full ? "FULL" : "NORMAL";
+    els.levelState.className = full ? "pill pill-warn" : "pill pill-ok";
+  }
+  els.pumpBadge.textContent = data.pump_on ? "ON" : "OFF";
+  els.pumpBadge.className = data.pump_on ? "pill pill-on" : "pill pill-off";
+  els.gsmBadge.textContent = data.gsm_online ? "ON" : "OFF";
+  els.gsmBadge.className = data.gsm_online ? "pill pill-on" : "pill pill-off";
+  els.smsState.textContent = data.sms_sent ? "LAST SENT: YES" : "READY";
+  els.lastUpdate.textContent = data.last_update
+    ? new Date(data.last_update * 1000).toLocaleTimeString()
+    : "--";
+}
 async function refresh() {
   try {
     const res = await fetch("/api/status");
@@ -42,182 +81,33 @@ async function refresh() {
     els.conn.className = "badge offline";
   }
 }
-
-function render(data) {
-  const dist = data.distance_cm;
-  const fresh = data.last_update && (Date.now() / 1000 - data.last_update < 30);
-
-  els.conn.textContent = fresh ? "DEVICE ONLINE" : "DEVICE OFFLINE";
-  els.conn.className = fresh ? "badge online" : "badge offline";
-
-  // distance
-  if (dist !== null && dist !== undefined && dist >= 0) {
-    els.distVal.textContent = dist.toFixed(1);
-    const pct = Math.min(100, dist / 100 * 100 / 5 * 5); // scale to 5cm=100%
-    els.distBar.style.width = Math.min(100, dist / 5 * 100) + "%";
-  } else {
-    els.distVal.textContent = "--";
-    els.distBar.style.width = "0%";
-  }
-
-  // water level (full when distance < 3cm)
-  if (dist !== null && dist !== undefined && dist >= 0 && dist < FULL_LIMIT_CM) {
-    els.levelState.textContent = "FULL";
-    els.levelState.className = "pill pill-warn";
-  } else {
-    els.levelState.textContent = "NORMAL";
-    els.levelState.className = "pill pill-ok";
-  }
-
-  // pump
-  setPill(els.pumpBadge, "pump", data.pump_is_on ? "ON" : "OFF");
-  syncPumpButton(data.pump_is_on);
-
-  // gsm
-  setPill(els.gsmBadge, "gsm", data.gsm_registered ? "ON" : "OFF");
-  els.smsState.className = "pill " + (data.gsm_registered ? "pill-ok" : "pill-off");
-  els.smsState.textContent = data.gsm_registered ? "READY" : "OFF";
-
-  // last update
-  els.lastUpdate.textContent = data.last_update
-    ? new Date(data.last_update * 1000).toLocaleTimeString()
-    : "--";
-
-  // control mode (from server, may have been changed elsewhere)
-  currentMode = data.manual_override ? "manual" : "auto";
-  overridePumpOn = Boolean(data.override_pump_on);
-  renderMode();
-
-  // ack status
-  if (data.revision === data.acked_revision) {
-    els.ackState.textContent = "APPLIED";
-    els.ackState.className = "pill pill-on";
-  } else if (data.revision === 0) {
-    els.ackState.textContent = "STANDBY";
-    els.ackState.className = "pill pill-off";
-  } else {
-    els.ackState.textContent = "PENDING";
-    els.ackState.className = "pill pill-busy";
-  }
-}
-
-function setPill(el, kind, label) {
-  let cls = "pill";
-  const isOn = label === "ON";
-  if (kind === "pump" || kind === "gsm") cls += isOn ? " pill-on" : " pill-off";
-  el.textContent = label;
-  el.className = cls;
-}
-
-function renderMode() {
-  const manual = currentMode === "manual";
-  els.modeAuto.className = "seg-btn" + (manual ? "" : " active");
-  els.modeManual.className = "seg-btn" + (manual ? " active" : "");
-  els.modeHint.textContent = manual
-    ? "MANUAL: you control the relay. The ultrasonic auto-trigger is paused."
-    : "AUTO: ultrasonic sensor triggers the pump when water is high.";
-  syncPumpButton();
-}
-
-function syncPumpButton(actualOn) {
-  // In manual mode show the overridden request; in auto show actual state.
-  const on = currentMode === "manual" ? overridePumpOn : Boolean(actualOn);
-  els.pumpToggle.className = "pump-btn " + (on ? "pump-on" : "pump-off");
-  els.pumpToggle.textContent = on ? "TURN PUMP OFF" : "TURN PUMP ON";
-}
-
-// ------------------------------------------------------------
-// Send control command to server
-// ------------------------------------------------------------
-async function sendControl() {
-  const payload = {
-    manual_override: currentMode === "manual",
-    override_pump_on: overridePumpOn,
-  };
-  try {
-    const res = await fetch("/api/control", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) throw new Error("bad status");
-    renderMode();
-  } catch (err) {
-    showToast("Failed to send command", "error");
-  }
-}
-
-// Event wiring
+els.pumpToggle.addEventListener("click", () => {
+  const on = els.pumpToggle.classList.contains("pump-on");
+  els.pumpToggle.classList.toggle("pump-on", !on);
+  fetch("/api/control", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "manual", override_pump_on: !on }),
+  }).then(() => {
+    els.ackState.textContent = "SENT";
+    els.ackState.className = "pill pill-ok";
+  });
+});
 els.modeAuto.addEventListener("click", () => {
-  if (currentMode !== "auto") { currentMode = "auto"; sendControl(); }
+  currentMode = "auto";
+  els.modeAuto.classList.add("active");
+  els.modeManual.classList.remove("active");
+  els.modeHint.textContent = "AUTO: sensor triggers the pump automatically.";
 });
 els.modeManual.addEventListener("click", () => {
-  if (currentMode !== "manual") { currentMode = "manual"; sendControl(); }
+  currentMode = "manual";
+  els.modeManual.classList.add("active");
+  els.modeAuto.classList.remove("active");
+  els.modeHint.textContent = "MANUAL: use the web button to run the pump.";
 });
-els.pumpToggle.addEventListener("click", () => {
-  overridePumpOn = !overridePumpOn;
-  sendControl();
+els.notifClear.addEventListener("click", () => {
+  els.notifList.innerHTML = '<li class="notif-item muted">NO EVENTS YET</li>';
+  notifCount = 0;
 });
-
-// ------------------------------------------------------------
-// Toast helper
-// ------------------------------------------------------------
-function showToast(msg, type) {
-  let t = document.getElementById("toast");
-  if (!t) {
-    t = document.createElement("div");
-    t.id = "toast";
-    document.body.appendChild(t);
-  }
-  t.textContent = msg;
-  t.className = "show " + type;
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => (t.className = ""), 2500);
-}
-
-// ============================================================
-// Pump cycles / day bar chart
-// ============================================================
-
-async function renderCycles() {
-  try {
-    const res = await fetch("/api/cycles");
-    const data = await res.json();
-    const days = data.days || [];
-    const counts = data.counts || [];
-    const el = els.cyclesChart;
-    if (!el) return;
-    el.innerHTML = "";
-
-    const max = Math.max(1, ...counts);
-    days.forEach((day, i) => {
-      const c = counts[i] || 0;
-      const col = document.createElement("div");
-      col.className = "cycle-col";
-      col.title = day + ": " + c + " cycle(s)";
-
-      const bar = document.createElement("div");
-      bar.className = "cycle-bar";
-      bar.style.height = Math.round((c / max) * 100) + "%";
-      bar.style.opacity = day === data.today
-        ? 1 : 0.25 + (c / max) * 0.6;
-
-      // label a few bars instead of all (keeps it readable on small screens)
-      const label = document.createElement("span");
-      label.className = "cycle-label";
-      label.textContent = (i % 2 === 0) ? day.slice(5) : "";
-
-      col.appendChild(bar);
-      col.appendChild(label);
-      el.appendChild(col);
-    });
-
-    els.cyclesToday.textContent = data.today ?? 0;
-    els.cyclesTotal.textContent = data.total ?? 0;
-  } catch (err) {
-    // chart is best-effort; ignore polling errors
-  }
-}
-
 refresh();
 setInterval(refresh, 3000);
