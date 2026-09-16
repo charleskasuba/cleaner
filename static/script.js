@@ -98,12 +98,22 @@ els.modeAuto.addEventListener("click", () => {
   els.modeAuto.classList.add("active");
   els.modeManual.classList.remove("active");
   els.modeHint.textContent = "AUTO: sensor triggers the pump automatically.";
+  fetch("/api/control", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "auto", manual_override: false, override_pump_on: false }),
+  }).catch(() => {});
 });
 els.modeManual.addEventListener("click", () => {
   currentMode = "manual";
   els.modeManual.classList.add("active");
   els.modeAuto.classList.remove("active");
-  els.modeHint.textContent = "MANUAL: use the web button to run the pump.";
+  els.modeHint.textContent = "MANUAL: you control the pump with the web button.";
+  fetch("/api/control", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mode: "manual", manual_override: true }),
+  }).catch(() => {});
 });
 els.notifClear.addEventListener("click", () => {
   els.notifList.innerHTML = '<li class="notif-item muted">NO EVENTS YET</li>';
